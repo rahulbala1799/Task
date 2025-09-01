@@ -3,11 +3,22 @@
 import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { ArrowLeft, Plus, Search, Filter } from 'lucide-react';
-import { Task, TaskCategory, TaskFormData } from '@/types';
+import { ArrowLeft, Plus, Search, Filter, Settings, RefreshCw } from 'lucide-react';
+import { Task, TaskCategory, TaskFormData, TaskTemplate, TaskTemplateFormData } from '@/types';
 import { loadTasks, saveTasks, generateId } from '@/lib/storage';
+import { 
+  loadTemplates, 
+  saveTemplates, 
+  generateTasksFromTemplates, 
+  shouldGenerateMonthlyTasks, 
+  markMonthlyTasksGenerated,
+  isRecurringCategory,
+  getTemplatesByCategory
+} from '@/lib/templates';
 import TaskForm from '@/components/TaskForm';
 import TaskCard from '@/components/TaskCard';
+import TaskTemplateForm from '@/components/TaskTemplateForm';
+import TaskTemplateCard from '@/components/TaskTemplateCard';
 
 const categoryConfig = {
   'month-end-phorest': { 
@@ -68,8 +79,12 @@ export default function CategoryPage() {
   const categoryId = params.categoryId as TaskCategory;
   
   const [tasks, setTasks] = useState<Task[]>([]);
+  const [templates, setTemplates] = useState<TaskTemplate[]>([]);
   const [showTaskForm, setShowTaskForm] = useState(false);
+  const [showTemplateForm, setShowTemplateForm] = useState(false);
+  const [showTemplates, setShowTemplates] = useState(false);
   const [editingTask, setEditingTask] = useState<Task | null>(null);
+  const [editingTemplate, setEditingTemplate] = useState<TaskTemplate | null>(null);
   const [filter, setFilter] = useState<FilterType>('all');
   const [searchTerm, setSearchTerm] = useState('');
 
@@ -90,13 +105,32 @@ export default function CategoryPage() {
 
   useEffect(() => {
     setTasks(loadTasks());
-  }, []);
+    setTemplates(loadTemplates());
+    
+    // Auto-generate monthly tasks if needed
+    if (isRecurringCategory(categoryId) && shouldGenerateMonthlyTasks()) {
+      const generatedTasks = generateTasksFromTemplates(categoryId);
+      if (generatedTasks.length > 0) {
+        const existingTasks = loadTasks();
+        const updatedTasks = [...generatedTasks, ...existingTasks];
+        setTasks(updatedTasks);
+        saveTasks(updatedTasks);
+        markMonthlyTasksGenerated();
+      }
+    }
+  }, [categoryId]);
 
   useEffect(() => {
     if (tasks.length > 0 || loadTasks().length > 0) {
       saveTasks(tasks);
     }
   }, [tasks]);
+
+  useEffect(() => {
+    if (templates.length > 0 || loadTemplates().length > 0) {
+      saveTemplates(templates);
+    }
+  }, [templates]);
 
   const handleAddTask = (formData: TaskFormData) => {
     const newTask: Task = {
@@ -139,6 +173,44 @@ export default function CategoryPage() {
     setTasks(prev => prev.filter(task => task.id !== id));
   };
 
+  const handleAddTemplate = (formData: TaskTemplateFormData) => {
+    const newTemplate: TaskTemplate = {
+      id: generateId(),
+      ...formData,
+      dueDayOfMonth: formData.dueDayOfMonth || undefined,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+
+    setTemplates(prev => [newTemplate, ...prev]);
+    setShowTemplateForm(false);
+  };
+
+  const handleEditTemplate = (formData: TaskTemplateFormData) => {
+    if (!editingTemplate) return;
+
+    setTemplates(prev =>
+      prev.map(template =>
+        template.id === editingTemplate.id
+          ? { ...template, ...formData, dueDayOfMonth: formData.dueDayOfMonth || undefined, updatedAt: new Date().toISOString() }
+          : template
+      )
+    );
+    setEditingTemplate(null);
+  };
+
+  const handleDeleteTemplate = (id: string) => {
+    setTemplates(prev => prev.filter(template => template.id !== id));
+  };
+
+  const handleGenerateFromTemplates = () => {
+    const generatedTasks = generateTasksFromTemplates(categoryId);
+    if (generatedTasks.length > 0) {
+      setTasks(prev => [...generatedTasks, ...prev]);
+      markMonthlyTasksGenerated();
+    }
+  };
+
   // Filter tasks for this category
   const categoryTasks = tasks.filter(task => task.category === categoryId);
 
@@ -168,6 +240,10 @@ export default function CategoryPage() {
 
   const pendingTasks = filteredTasks.filter(task => !task.completed);
   const completedTasks = filteredTasks.filter(task => task.completed);
+  
+  // Get templates for this category
+  const categoryTemplates = templates.filter(template => template.category === categoryId);
+  const isRecurring = isRecurringCategory(categoryId);
 
   const stats = {
     total: categoryTasks.length,
@@ -224,14 +300,41 @@ export default function CategoryPage() {
           </div>
 
           {/* Controls */}
-          <div className="flex items-center justify-between gap-4">
-            <button
-              onClick={() => setShowTaskForm(true)}
-              className="btn-primary flex items-center gap-2"
-            >
-              <Plus size={20} />
-              Add Task
-            </button>
+          <div className="flex items-center justify-between gap-4 mb-4">
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setShowTaskForm(true)}
+                className="btn-primary flex items-center gap-2"
+              >
+                <Plus size={20} />
+                Add Task
+              </button>
+              
+              {isRecurring && (
+                <>
+                  <button
+                    onClick={() => setShowTemplates(!showTemplates)}
+                    className={`px-4 py-2 rounded-lg border-2 transition-all duration-200 flex items-center gap-2 ${
+                      showTemplates
+                        ? 'border-primary-500 bg-primary-50 text-primary-600'
+                        : 'border-gray-300 hover:border-gray-400 text-gray-600'
+                    }`}
+                  >
+                    <Settings size={16} />
+                    Templates ({categoryTemplates.length})
+                  </button>
+                  
+                  <button
+                    onClick={handleGenerateFromTemplates}
+                    className="px-4 py-2 rounded-lg border-2 border-green-300 hover:border-green-400 text-green-600 hover:bg-green-50 transition-all duration-200 flex items-center gap-2"
+                    title="Generate tasks from templates for this month"
+                  >
+                    <RefreshCw size={16} />
+                    Generate
+                  </button>
+                </>
+              )}
+            </div>
 
             <div className="flex items-center gap-2">
               <select
@@ -246,6 +349,51 @@ export default function CategoryPage() {
               </select>
             </div>
           </div>
+
+          {/* Template Management Section */}
+          {isRecurring && showTemplates && (
+            <div className="bg-blue-50 rounded-lg p-4 mb-4">
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="text-lg font-semibold text-blue-900">
+                  Monthly Task Templates
+                </h3>
+                <button
+                  onClick={() => setShowTemplateForm(true)}
+                  className="btn-primary text-sm flex items-center gap-1"
+                >
+                  <Plus size={14} />
+                  Add Template
+                </button>
+              </div>
+              
+              <p className="text-sm text-blue-800 mb-4">
+                Templates automatically create tasks each month. Perfect for recurring monthly tasks that are always the same.
+              </p>
+              
+              {categoryTemplates.length === 0 ? (
+                <div className="text-center py-6">
+                  <p className="text-blue-600 mb-2">No templates yet</p>
+                  <button
+                    onClick={() => setShowTemplateForm(true)}
+                    className="btn-primary text-sm"
+                  >
+                    Create Your First Template
+                  </button>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {categoryTemplates.map(template => (
+                    <TaskTemplateCard
+                      key={template.id}
+                      template={template}
+                      onEdit={setEditingTemplate}
+                      onDelete={handleDeleteTemplate}
+                    />
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
 
           {/* Search */}
           <div className="relative mt-4">
@@ -341,6 +489,19 @@ export default function CategoryPage() {
             setEditingTask(null);
           }}
           initialData={editingTask ? editingTask : { category: categoryId }}
+        />
+      )}
+
+      {/* Template Form Modal */}
+      {(showTemplateForm || editingTemplate) && (
+        <TaskTemplateForm
+          onSubmit={editingTemplate ? handleEditTemplate : handleAddTemplate}
+          onCancel={() => {
+            setShowTemplateForm(false);
+            setEditingTemplate(null);
+          }}
+          initialData={editingTemplate || undefined}
+          category={categoryId}
         />
       )}
     </div>

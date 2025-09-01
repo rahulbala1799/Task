@@ -29,3 +29,27 @@ export interface TaskFormData {
   priority: Priority;
   dueDate: string;
 }
+
+export interface TaskTemplate {
+  id: string;
+  title: string;
+  description?: string;
+  category: TaskCategory;
+  priority: Priority;
+  dueDayOfMonth?: number; // Day of month when task is due (1-31)
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface TaskTemplateFormData {
+  title: string;
+  description: string;
+  category: TaskCategory;
+  priority: Priority;
+  dueDayOfMonth: number;
+}
+
+export interface MonthlyTaskGeneration {
+  lastGenerated: string; // ISO date string of last generation
+  month: string; // Format: "YYYY-MM"
+}
