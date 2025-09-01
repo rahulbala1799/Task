@@ -2,9 +2,10 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { Calendar, TrendingUp } from 'lucide-react';
+import { Calendar, TrendingUp, RefreshCw } from 'lucide-react';
 import { loadTasks } from '@/lib/storage';
 import { Task, TaskCategory } from '@/types';
+import DataManager from '@/components/DataManager';
 
 const categories = [
   {
@@ -65,10 +66,17 @@ const categories = [
 
 export default function Home() {
   const [tasks, setTasks] = useState<Task[]>([]);
+  const [showDataManager, setShowDataManager] = useState(false);
 
   useEffect(() => {
     setTasks(loadTasks());
   }, []);
+
+  const handleDataImported = () => {
+    // Refresh tasks after import
+    setTasks(loadTasks());
+    setShowDataManager(false);
+  };
 
   const getCategoryStats = (categoryId: TaskCategory) => {
     const categoryTasks = tasks.filter(task => task.category === categoryId);
@@ -200,18 +208,40 @@ export default function Home() {
 
         {/* Quick Add Section */}
         <div className="mt-8 text-center">
-          <p className="text-gray-600 mb-4">Need to add a task quickly?</p>
-          <Link 
-            href="/add-task"
-            className="btn-primary inline-flex items-center gap-2 shadow-lg"
-          >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-            </svg>
-            Quick Add Task
-          </Link>
+          <p className="text-gray-600 mb-4">Need to add a task quickly or sync your data?</p>
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
+            <Link 
+              href="/add-task"
+              className="btn-primary inline-flex items-center gap-2 shadow-lg"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+              </svg>
+              Quick Add Task
+            </Link>
+            
+            <button
+              onClick={() => setShowDataManager(true)}
+              className="px-6 py-3 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition-colors shadow-lg inline-flex items-center gap-2"
+            >
+              <RefreshCw size={20} />
+              Sync Data
+            </button>
+          </div>
+          
+          <p className="text-xs text-gray-500 mt-2">
+            💡 Use "Sync Data" to transfer tasks between your phone and computer
+          </p>
         </div>
       </main>
+
+      {/* Data Manager Modal */}
+      {showDataManager && (
+        <DataManager
+          onClose={() => setShowDataManager(false)}
+          onDataImported={handleDataImported}
+        />
+      )}
     </div>
   );
 }
