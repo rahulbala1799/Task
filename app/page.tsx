@@ -99,6 +99,33 @@ export default function Home() {
     return { total: categoryTasks.length, pending, overdue };
   };
 
+  const handleReset = async () => {
+    if (!confirm('Are you sure you want to delete ALL tasks and templates? This cannot be undone!')) {
+      return;
+    }
+
+    try {
+      setIsLoading(true);
+      const response = await fetch('/api/reset', { method: 'POST' });
+      const result = await response.json();
+      
+      if (result.success) {
+        // Clear local state
+        setTasks([]);
+        // Reload fresh data (will re-seed templates)
+        await loadTasksFromDatabase();
+        alert('All data has been reset successfully!');
+      } else {
+        alert('Failed to reset data. Please try again.');
+      }
+    } catch (error) {
+      console.error('Error resetting data:', error);
+      alert('Failed to reset data. Please try again.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const totalStats = {
     total: tasks.length,
     pending: tasks.filter(task => !task.completed).length,
@@ -234,6 +261,14 @@ export default function Home() {
           <p className="text-xs text-gray-500 mt-2">
             🎉 Your tasks automatically sync across all devices!
           </p>
+          
+          {/* Reset Button */}
+          <button
+            onClick={handleReset}
+            className="mt-4 bg-red-600 text-white py-2 px-4 rounded-lg text-sm font-medium hover:bg-red-700 transition-colors"
+          >
+            🗑️ Reset All Data
+          </button>
         </div>
       </main>
 
