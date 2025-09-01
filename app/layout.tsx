@@ -4,9 +4,15 @@ import './globals.css'
 export const metadata: Metadata = {
   title: 'Task Manager - Stay Organized',
   description: 'A comprehensive task manager for work, personal life, and business',
-  viewport: 'width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no',
-  themeColor: '#3b82f6',
   manifest: '/manifest.json',
+}
+
+export const viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
+  themeColor: '#3b82f6',
 }
 
 export default function RootLayout({
