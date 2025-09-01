@@ -5,20 +5,17 @@ import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { ArrowLeft, Plus, Search, Filter, Settings, RefreshCw } from 'lucide-react';
 import { Task, TaskCategory, TaskFormData, TaskTemplate, TaskTemplateFormData } from '@/types';
-import { loadTasks, saveTasks, generateId } from '@/lib/storage';
+import { generateId } from '@/lib/storage';
 import { 
-  loadTemplates, 
-  saveTemplates, 
-  generateTasksFromTemplates, 
-  shouldGenerateMonthlyTasks, 
-  markMonthlyTasksGenerated,
-  isRecurringCategory,
-  getTemplatesByCategory
-} from '@/lib/templates';
-import { 
-  getAllMonthEndTemplates, 
-  getAllPhorestMonthlyTemplates 
-} from '@/lib/seedTemplates';
+  loadTasksFromDB,
+  saveTaskToDB,
+  updateTaskInDB,
+  deleteTaskFromDB,
+  loadTemplatesFromDB,
+  saveTemplateToDB,
+  updateTemplateInDB,
+  deleteTemplateFromDB
+} from '@/lib/dbStorage';
 import TaskForm from '@/components/TaskForm';
 import TaskCard from '@/components/TaskCard';
 import TaskTemplateForm from '@/components/TaskTemplateForm';
@@ -108,133 +105,141 @@ export default function CategoryPage() {
   }
 
   useEffect(() => {
-    setTasks(loadTasks());
-    setTemplates(loadTemplates());
-    
-    // Auto-generate monthly tasks if needed
-    if (isRecurringCategory(categoryId) && shouldGenerateMonthlyTasks()) {
-      const generatedTasks = generateTasksFromTemplates(categoryId);
-      if (generatedTasks.length > 0) {
-        const existingTasks = loadTasks();
-        const updatedTasks = [...generatedTasks, ...existingTasks];
-        setTasks(updatedTasks);
-        saveTasks(updatedTasks);
-        markMonthlyTasksGenerated();
-      }
-    }
+    loadDataFromDatabase();
   }, [categoryId]);
 
-  useEffect(() => {
-    if (tasks.length > 0 || loadTasks().length > 0) {
-      saveTasks(tasks);
+  const loadDataFromDatabase = async () => {
+    try {
+      const [dbTasks, dbTemplates] = await Promise.all([
+        loadTasksFromDB(),
+        loadTemplatesFromDB()
+      ]);
+      
+      setTasks(dbTasks);
+      setTemplates(dbTemplates);
+    } catch (error) {
+      console.error('Error loading data:', error);
     }
-  }, [tasks]);
+  };
 
-  useEffect(() => {
-    if (templates.length > 0 || loadTemplates().length > 0) {
-      saveTemplates(templates);
-    }
-  }, [templates]);
-
-  const handleAddTask = (formData: TaskFormData) => {
-    const newTask: Task = {
+  const handleAddTask = async (formData: TaskFormData) => {
+    const newTaskData = {
       id: generateId(),
       ...formData,
       category: categoryId, // Force the category to match the current page
       completed: false,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
     };
 
-    setTasks(prev => [newTask, ...prev]);
-    setShowTaskForm(false);
+    const savedTask = await saveTaskToDB(newTaskData);
+    if (savedTask) {
+      setTasks(prev => [savedTask, ...prev]);
+      setShowTaskForm(false);
+    }
   };
 
-  const handleEditTask = (formData: TaskFormData) => {
+  const handleEditTask = async (formData: TaskFormData) => {
     if (!editingTask) return;
 
-    setTasks(prev =>
-      prev.map(task =>
-        task.id === editingTask.id
-          ? { ...task, ...formData, updatedAt: new Date().toISOString() }
-          : task
-      )
-    );
-    setEditingTask(null);
+    const updatedTask = { ...editingTask, ...formData };
+    const savedTask = await updateTaskInDB(updatedTask);
+    
+    if (savedTask) {
+      setTasks(prev =>
+        prev.map(task =>
+          task.id === editingTask.id ? savedTask : task
+        )
+      );
+      setEditingTask(null);
+    }
   };
 
-  const handleToggleTask = (id: string) => {
-    setTasks(prev =>
-      prev.map(task =>
-        task.id === id
-          ? { ...task, completed: !task.completed, updatedAt: new Date().toISOString() }
-          : task
-      )
-    );
+  const handleToggleTask = async (id: string) => {
+    const task = tasks.find(t => t.id === id);
+    if (!task) return;
+
+    const updatedTask = { ...task, completed: !task.completed };
+    const savedTask = await updateTaskInDB(updatedTask);
+    
+    if (savedTask) {
+      setTasks(prev =>
+        prev.map(t => t.id === id ? savedTask : t)
+      );
+    }
   };
 
-  const handleDeleteTask = (id: string) => {
-    setTasks(prev => prev.filter(task => task.id !== id));
+  const handleDeleteTask = async (id: string) => {
+    const success = await deleteTaskFromDB(id);
+    if (success) {
+      setTasks(prev => prev.filter(task => task.id !== id));
+    }
   };
 
-  const handleAddTemplate = (formData: TaskTemplateFormData) => {
-    const newTemplate: TaskTemplate = {
+  const handleAddTemplate = async (formData: TaskTemplateFormData) => {
+    const newTemplateData = {
       id: generateId(),
       ...formData,
       dueDayOfMonth: formData.dueDayOfMonth || undefined,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
     };
 
-    setTemplates(prev => [newTemplate, ...prev]);
-    setShowTemplateForm(false);
+    const savedTemplate = await saveTemplateToDB(newTemplateData);
+    if (savedTemplate) {
+      setTemplates(prev => [savedTemplate, ...prev]);
+      setShowTemplateForm(false);
+    }
   };
 
-  const handleEditTemplate = (formData: TaskTemplateFormData) => {
+  const handleEditTemplate = async (formData: TaskTemplateFormData) => {
     if (!editingTemplate) return;
 
-    setTemplates(prev =>
-      prev.map(template =>
-        template.id === editingTemplate.id
-          ? { ...template, ...formData, dueDayOfMonth: formData.dueDayOfMonth || undefined, updatedAt: new Date().toISOString() }
-          : template
-      )
-    );
-    setEditingTemplate(null);
-  };
-
-  const handleDeleteTemplate = (id: string) => {
-    setTemplates(prev => prev.filter(template => template.id !== id));
-  };
-
-  const handleGenerateFromTemplates = () => {
-    const generatedTasks = generateTasksFromTemplates(categoryId);
-    if (generatedTasks.length > 0) {
-      setTasks(prev => [...generatedTasks, ...prev]);
-      markMonthlyTasksGenerated();
+    const updatedTemplate = { 
+      ...editingTemplate, 
+      ...formData, 
+      dueDayOfMonth: formData.dueDayOfMonth || undefined 
+    };
+    
+    const savedTemplate = await updateTemplateInDB(updatedTemplate);
+    if (savedTemplate) {
+      setTemplates(prev =>
+        prev.map(template =>
+          template.id === editingTemplate.id ? savedTemplate : template
+        )
+      );
+      setEditingTemplate(null);
     }
   };
 
-  const handleSeedTemplates = () => {
-    let seedTemplates: TaskTemplate[] = [];
-    
-    if (categoryId === 'month-end-phorest') {
-      seedTemplates = getAllMonthEndTemplates();
-    } else if (categoryId === 'phorest-monthly') {
-      seedTemplates = getAllPhorestMonthlyTemplates();
+  const handleDeleteTemplate = async (id: string) => {
+    const success = await deleteTemplateFromDB(id);
+    if (success) {
+      setTemplates(prev => prev.filter(template => template.id !== id));
     }
+  };
+
+  const handleGenerateFromTemplates = async () => {
+    // Generate tasks from templates for current month
+    const categoryTemplates = templates.filter(t => t.category === categoryId);
+    const now = new Date();
     
-    if (seedTemplates.length > 0) {
-      // Merge with existing templates, avoiding duplicates by title
-      const existingTemplates = templates;
-      const existingTitles = existingTemplates.map(t => t.title);
-      const newTemplates = seedTemplates.filter(t => !existingTitles.includes(t.title));
+    for (const template of categoryTemplates) {
+      let dueDate = '';
+      if (template.dueDayOfMonth) {
+        const dueDateTime = new Date(now.getFullYear(), now.getMonth(), template.dueDayOfMonth);
+        dueDate = dueDateTime.toISOString().split('T')[0];
+      }
       
-      if (newTemplates.length > 0) {
-        setTemplates(prev => [...newTemplates, ...prev]);
-        alert(`Added ${newTemplates.length} business-specific templates!`);
-      } else {
-        alert('All business templates are already added!');
+      const newTask = {
+        id: generateId(),
+        title: template.title,
+        description: template.description || '',
+        category: template.category,
+        priority: template.priority,
+        completed: false,
+        dueDate,
+      };
+      
+      const savedTask = await saveTaskToDB(newTask);
+      if (savedTask) {
+        setTasks(prev => [savedTask, ...prev]);
       }
     }
   };
@@ -271,7 +276,7 @@ export default function CategoryPage() {
   
   // Get templates for this category
   const categoryTemplates = templates.filter(template => template.category === categoryId);
-  const isRecurring = isRecurringCategory(categoryId);
+  const isRecurring = categoryId === 'month-end-phorest' || categoryId === 'phorest-monthly';
 
   const stats = {
     total: categoryTasks.length,
@@ -385,28 +390,17 @@ export default function CategoryPage() {
                 <h3 className="text-lg font-semibold text-blue-900">
                   Monthly Task Templates
                 </h3>
-                <div className="flex items-center gap-2">
-                  {(categoryId === 'month-end-phorest' || categoryId === 'phorest-monthly') && (
-                    <button
-                      onClick={handleSeedTemplates}
-                      className="px-3 py-1 bg-green-600 text-white rounded-lg text-sm hover:bg-green-700 transition-colors flex items-center gap-1"
-                    >
-                      <Plus size={12} />
-                      Add Business Templates
-                    </button>
-                  )}
-                  <button
-                    onClick={() => setShowTemplateForm(true)}
-                    className="btn-primary text-sm flex items-center gap-1"
-                  >
-                    <Plus size={14} />
-                    Custom Template
-                  </button>
-                </div>
+                <button
+                  onClick={() => setShowTemplateForm(true)}
+                  className="btn-primary text-sm flex items-center gap-1"
+                >
+                  <Plus size={14} />
+                  Add Template
+                </button>
               </div>
               
               <p className="text-sm text-blue-800 mb-4">
-                Templates automatically create tasks each month. Use "Add Business Templates" to load your specific Phorest workflow, or create custom templates.
+                Templates automatically create tasks each month. Your business templates are already loaded! Use "Generate" to create this month's tasks.
               </p>
               
               {categoryTemplates.length === 0 ? (
