@@ -1,0 +1,57 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html {
+    font-family: system-ui, sans-serif;
+  }
+  
+  body {
+    @apply bg-gray-50 text-gray-900;
+  }
+}
+
+@layer components {
+  .btn-primary {
+    @apply bg-primary-500 text-white px-4 py-3 rounded-lg font-medium shadow-sm hover:bg-primary-600 active:bg-primary-700 transition-colors duration-200 touch-manipulation;
+  }
+  
+  .btn-secondary {
+    @apply bg-gray-200 text-gray-700 px-4 py-3 rounded-lg font-medium shadow-sm hover:bg-gray-300 active:bg-gray-400 transition-colors duration-200 touch-manipulation;
+  }
+  
+  .btn-danger {
+    @apply bg-danger-500 text-white px-3 py-2 rounded-lg font-medium shadow-sm hover:bg-danger-600 active:bg-danger-700 transition-colors duration-200 touch-manipulation;
+  }
+  
+  .task-card {
+    @apply bg-white rounded-lg shadow-sm border border-gray-200 p-4 mb-3 touch-manipulation;
+  }
+  
+  .category-header {
+    @apply text-lg font-semibold mb-3 flex items-center gap-2;
+  }
+  
+  .input-field {
+    @apply w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none transition-all duration-200;
+  }
+  
+  .textarea-field {
+    @apply w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none transition-all duration-200 resize-none;
+  }
+}
+
+/* Mobile optimizations */
+@media (max-width: 768px) {
+  .btn-primary,
+  .btn-secondary,
+  .btn-danger {
+    @apply text-base min-h-[44px] min-w-[44px];
+  }
+  
+  .input-field,
+  .textarea-field {
+    @apply text-base min-h-[44px];
+  }
+}
