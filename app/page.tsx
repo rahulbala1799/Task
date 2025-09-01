@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { Calendar } from 'lucide-react';
 import { loadTasks } from '@/lib/storage';
 import { Task, TaskCategory } from '@/types';
 
@@ -92,10 +93,22 @@ export default function Home() {
       {/* Header */}
       <header className="bg-white shadow-sm border-b">
         <div className="max-w-4xl mx-auto px-4 py-6">
-          <div className="text-center mb-6">
-            <h1 className="text-3xl font-bold text-gray-900 mb-2">Task Manager</h1>
-            <p className="text-gray-600">Choose a category to manage your tasks</p>
+                  <div className="text-center mb-6">
+          <div className="flex items-center justify-between mb-4">
+            <div></div>
+            <div>
+              <h1 className="text-3xl font-bold text-gray-900 mb-2">Task Manager</h1>
+              <p className="text-gray-600">Choose a category to manage your tasks</p>
+            </div>
+            <Link
+              href="/calendar"
+              className="flex items-center gap-2 px-4 py-2 bg-primary-500 text-white rounded-lg hover:bg-primary-600 transition-colors shadow-sm"
+            >
+              <Calendar size={20} />
+              <span className="hidden sm:inline">Calendar</span>
+            </Link>
           </div>
+        </div>
 
           {/* Overall Stats */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
