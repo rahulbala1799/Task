@@ -6,13 +6,19 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "db:generate": "drizzle-kit generate:pg",
+    "db:push": "drizzle-kit push:pg",
+    "db:studio": "drizzle-kit studio"
   },
   "dependencies": {
     "next": "14.0.4",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
-    "lucide-react": "^0.294.0"
+    "lucide-react": "^0.294.0",
+    "@vercel/postgres": "^0.5.1",
+    "drizzle-orm": "^0.29.1",
+    "drizzle-kit": "^0.20.6"
   },
   "devDependencies": {
     "@types/node": "^20.10.5",
