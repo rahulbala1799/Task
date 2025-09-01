@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { ArrowLeft, ChevronLeft, ChevronRight, Calendar as CalendarIcon } from 'lucide-react';
 import { Task } from '@/types';
-import { loadTasks, saveTasks } from '@/lib/storage';
+import { loadTasksFromDB, updateTaskInDB, deleteTaskFromDB } from '@/lib/dbStorage';
 import TaskCard from '@/components/TaskCard';
 
 const DAYS_OF_WEEK = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
@@ -19,8 +19,17 @@ export default function CalendarPage() {
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
 
   useEffect(() => {
-    setTasks(loadTasks());
+    loadTasksFromDatabase();
   }, []);
+
+  const loadTasksFromDatabase = async () => {
+    try {
+      const dbTasks = await loadTasksFromDB();
+      setTasks(dbTasks);
+    } catch (error) {
+      console.error('Error loading tasks:', error);
+    }
+  };
 
   const year = currentDate.getFullYear();
   const month = currentDate.getMonth();
@@ -66,26 +75,29 @@ export default function CalendarPage() {
   };
 
   // Handle task operations
-  const handleToggleTask = (id: string) => {
-    const updatedTasks = tasks.map(task =>
-      task.id === id
-        ? { ...task, completed: !task.completed, updatedAt: new Date().toISOString() }
-        : task
-    );
-    setTasks(updatedTasks);
-    saveTasks(updatedTasks);
+  const handleToggleTask = async (id: string) => {
+    const task = tasks.find(t => t.id === id);
+    if (!task) return;
+
+    const updatedTask = { ...task, completed: !task.completed };
+    const savedTask = await updateTaskInDB(updatedTask);
+    
+    if (savedTask) {
+      setTasks(prev => prev.map(t => t.id === id ? savedTask : t));
+    }
   };
 
   const handleEditTask = (task: Task) => {
-    // For now, redirect to the category page where they can edit
+    // Redirect to the category page where they can edit
     const categoryUrl = `/category/${task.category}`;
     window.location.href = categoryUrl;
   };
 
-  const handleDeleteTask = (id: string) => {
-    const updatedTasks = tasks.filter(task => task.id !== id);
-    setTasks(updatedTasks);
-    saveTasks(updatedTasks);
+  const handleDeleteTask = async (id: string) => {
+    const success = await deleteTaskFromDB(id);
+    if (success) {
+      setTasks(prev => prev.filter(task => task.id !== id));
+    }
   };
 
   // Generate calendar days

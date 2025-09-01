@@ -17,7 +17,7 @@ import {
   Flame
 } from 'lucide-react';
 import { Task, TaskCategory } from '@/types';
-import { loadTasks } from '@/lib/storage';
+import { loadTasksFromDB } from '@/lib/dbStorage';
 
 interface ProductivityMetrics {
   today: {
@@ -62,10 +62,18 @@ export default function DashboardPage() {
   const [metrics, setMetrics] = useState<ProductivityMetrics | null>(null);
 
   useEffect(() => {
-    const allTasks = loadTasks();
-    setTasks(allTasks);
-    calculateMetrics(allTasks);
+    loadTasksFromDatabase();
   }, []);
+
+  const loadTasksFromDatabase = async () => {
+    try {
+      const allTasks = await loadTasksFromDB();
+      setTasks(allTasks);
+      calculateMetrics(allTasks);
+    } catch (error) {
+      console.error('Error loading tasks:', error);
+    }
+  };
 
   const calculateMetrics = (allTasks: Task[]) => {
     const now = new Date();
