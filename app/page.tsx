@@ -6,6 +6,7 @@ import { Calendar, TrendingUp, RefreshCw } from 'lucide-react';
 import { loadTasks } from '@/lib/storage';
 import { Task, TaskCategory } from '@/types';
 import DataManager from '@/components/DataManager';
+import DatabaseMigration from '@/components/DatabaseMigration';
 
 const categories = [
   {
@@ -67,15 +68,34 @@ const categories = [
 export default function Home() {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [showDataManager, setShowDataManager] = useState(false);
+  const [showDatabaseMigration, setShowDatabaseMigration] = useState(false);
 
   useEffect(() => {
     setTasks(loadTasks());
+    
+    // Check if we have localStorage data that needs migration
+    const hasLocalData = () => {
+      const localTasks = localStorage.getItem('taskmanager_tasks');
+      const localTemplates = localStorage.getItem('taskmanager_templates');
+      return (localTasks && JSON.parse(localTasks).length > 0) || 
+             (localTemplates && JSON.parse(localTemplates).length > 0);
+    };
+
+    // Show migration dialog if we have local data
+    if (hasLocalData()) {
+      setShowDatabaseMigration(true);
+    }
   }, []);
 
   const handleDataImported = () => {
     // Refresh tasks after import
     setTasks(loadTasks());
     setShowDataManager(false);
+  };
+
+  const handleMigrationComplete = () => {
+    // Refresh the page to start using database
+    window.location.reload();
   };
 
   const getCategoryStats = (categoryId: TaskCategory) => {
@@ -234,6 +254,14 @@ export default function Home() {
           </p>
         </div>
       </main>
+
+      {/* Database Migration Modal */}
+      {showDatabaseMigration && (
+        <DatabaseMigration
+          onClose={() => setShowDatabaseMigration(false)}
+          onMigrated={handleMigrationComplete}
+        />
+      )}
 
       {/* Data Manager Modal */}
       {showDataManager && (

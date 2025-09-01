@@ -18,6 +18,16 @@ export default function DatabaseMigration({ onClose, onMigrated }: DatabaseMigra
     setResult(null);
 
     try {
+      // First, initialize the database tables
+      const initResponse = await fetch('/api/init-db', {
+        method: 'POST',
+      });
+      
+      if (!initResponse.ok) {
+        throw new Error('Failed to initialize database tables');
+      }
+
+      // Then migrate the data
       const migrationResult = await migrateLocalStorageToDatabase();
       setResult(migrationResult);
       
