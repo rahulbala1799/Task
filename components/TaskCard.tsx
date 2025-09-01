@@ -19,10 +19,12 @@ const priorityColors = {
 };
 
 const categoryEmojis = {
-  job: '💼',
-  'month-end': '📅',
-  personal: '🏠',
-  business: '🚀',
+  'month-end-phorest': '📅',
+  'phorest-monthly': '🌲',
+  'phorest-adhoc': '⚡',
+  'pnp-marketing': '📢',
+  'pnp-printing': '🖨️',
+  'personal': '🏠',
 };
 
 export default function TaskCard({ task, onToggle, onEdit, onDelete }: TaskCardProps) {

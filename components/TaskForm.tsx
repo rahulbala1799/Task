@@ -11,10 +11,12 @@ interface TaskFormProps {
 }
 
 const categories: { id: TaskCategory; name: string; emoji: string }[] = [
-  { id: 'job', name: 'Job', emoji: '💼' },
-  { id: 'month-end', name: 'Month-end', emoji: '📅' },
-  { id: 'personal', name: 'Personal', emoji: '🏠' },
-  { id: 'business', name: 'Business', emoji: '🚀' },
+  { id: 'month-end-phorest', name: 'Month End Phorest', emoji: '📅' },
+  { id: 'phorest-monthly', name: 'Phorest Monthly', emoji: '🌲' },
+  { id: 'phorest-adhoc', name: 'Phorest Ad Hoc', emoji: '⚡' },
+  { id: 'pnp-marketing', name: 'PnP Marketing', emoji: '📢' },
+  { id: 'pnp-printing', name: 'PnP Printing', emoji: '🖨️' },
+  { id: 'personal', name: 'Personal Life', emoji: '🏠' },
 ];
 
 const priorities: { id: Priority; name: string; color: string }[] = [
@@ -86,20 +88,20 @@ export default function TaskForm({ onSubmit, onCancel, initialData }: TaskFormPr
             <label className="block text-sm font-medium text-gray-700 mb-2">
               Category
             </label>
-            <div className="grid grid-cols-2 gap-2">
+            <div className="grid grid-cols-1 gap-2">
               {categories.map((category) => (
                 <button
                   key={category.id}
                   type="button"
                   onClick={() => setFormData({ ...formData, category: category.id })}
-                  className={`p-3 rounded-lg border-2 transition-all duration-200 ${
+                  className={`p-3 rounded-lg border-2 transition-all duration-200 flex items-center gap-3 ${
                     formData.category === category.id
                       ? 'border-primary-500 bg-primary-50'
                       : 'border-gray-200 hover:border-gray-300'
                   }`}
                 >
-                  <div className="text-2xl mb-1">{category.emoji}</div>
-                  <div className="text-sm font-medium">{category.name}</div>
+                  <div className="text-2xl">{category.emoji}</div>
+                  <div className="text-sm font-medium text-left">{category.name}</div>
                 </button>
               ))}
             </div>

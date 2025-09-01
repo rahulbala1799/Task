@@ -12,10 +12,12 @@ interface CategorySectionProps {
 }
 
 const categoryConfig = {
-  job: { name: 'Job', emoji: '💼', color: 'text-blue-600' },
-  'month-end': { name: 'Month-end Tasks', emoji: '📅', color: 'text-purple-600' },
-  personal: { name: 'Personal Life', emoji: '🏠', color: 'text-green-600' },
-  business: { name: 'Business', emoji: '🚀', color: 'text-orange-600' },
+  'month-end-phorest': { name: 'Month End Phorest', emoji: '📅', color: 'text-purple-600' },
+  'phorest-monthly': { name: 'Phorest Monthly Tasks', emoji: '🌲', color: 'text-green-600' },
+  'phorest-adhoc': { name: 'Phorest Ad Hoc Tasks', emoji: '⚡', color: 'text-yellow-600' },
+  'pnp-marketing': { name: 'PnP Marketing Tasks', emoji: '📢', color: 'text-blue-600' },
+  'pnp-printing': { name: 'PnP Printing Tasks', emoji: '🖨️', color: 'text-indigo-600' },
+  'personal': { name: 'Personal Life Tasks', emoji: '🏠', color: 'text-pink-600' },
 };
 
 export default function CategorySection({

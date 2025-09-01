@@ -1,112 +1,84 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Plus, Filter, Search, CheckCircle, Clock, AlertTriangle } from 'lucide-react';
-import { Task, TaskCategory, TaskFormData } from '@/types';
-import { loadTasks, saveTasks, generateId } from '@/lib/storage';
-import TaskForm from '@/components/TaskForm';
-import CategorySection from '@/components/CategorySection';
+import Link from 'next/link';
+import { loadTasks } from '@/lib/storage';
+import { Task, TaskCategory } from '@/types';
 
-type FilterType = 'all' | 'pending' | 'completed' | 'overdue';
+const categories = [
+  {
+    id: 'month-end-phorest' as TaskCategory,
+    name: 'Month End Phorest',
+    description: 'Monthly closing tasks and reports',
+    emoji: '📅',
+    color: 'from-purple-500 to-purple-600',
+    textColor: 'text-purple-600',
+    bgColor: 'bg-purple-50',
+  },
+  {
+    id: 'phorest-monthly' as TaskCategory,
+    name: 'Phorest Monthly Tasks',
+    description: 'Regular monthly Phorest activities',
+    emoji: '🌲',
+    color: 'from-green-500 to-green-600',
+    textColor: 'text-green-600',
+    bgColor: 'bg-green-50',
+  },
+  {
+    id: 'phorest-adhoc' as TaskCategory,
+    name: 'Phorest Ad Hoc Tasks',
+    description: 'One-off and urgent Phorest tasks',
+    emoji: '⚡',
+    color: 'from-yellow-500 to-yellow-600',
+    textColor: 'text-yellow-600',
+    bgColor: 'bg-yellow-50',
+  },
+  {
+    id: 'pnp-marketing' as TaskCategory,
+    name: 'PnP Marketing Tasks',
+    description: 'Marketing campaigns and promotions',
+    emoji: '📢',
+    color: 'from-blue-500 to-blue-600',
+    textColor: 'text-blue-600',
+    bgColor: 'bg-blue-50',
+  },
+  {
+    id: 'pnp-printing' as TaskCategory,
+    name: 'PnP Printing Tasks',
+    description: 'Print production and fulfillment',
+    emoji: '🖨️',
+    color: 'from-indigo-500 to-indigo-600',
+    textColor: 'text-indigo-600',
+    bgColor: 'bg-indigo-50',
+  },
+  {
+    id: 'personal' as TaskCategory,
+    name: 'Personal Life Tasks',
+    description: 'Personal goals and activities',
+    emoji: '🏠',
+    color: 'from-pink-500 to-pink-600',
+    textColor: 'text-pink-600',
+    bgColor: 'bg-pink-50',
+  },
+];
 
 export default function Home() {
   const [tasks, setTasks] = useState<Task[]>([]);
-  const [showTaskForm, setShowTaskForm] = useState(false);
-  const [editingTask, setEditingTask] = useState<Task | null>(null);
-  const [filter, setFilter] = useState<FilterType>('all');
-  const [searchTerm, setSearchTerm] = useState('');
-  const [selectedCategory, setSelectedCategory] = useState<TaskCategory | 'all'>('all');
 
-  // Load tasks on component mount
   useEffect(() => {
     setTasks(loadTasks());
   }, []);
 
-  // Save tasks whenever tasks change
-  useEffect(() => {
-    if (tasks.length > 0 || loadTasks().length > 0) {
-      saveTasks(tasks);
-    }
-  }, [tasks]);
-
-  const handleAddTask = (formData: TaskFormData) => {
-    const newTask: Task = {
-      id: generateId(),
-      ...formData,
-      completed: false,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    };
-
-    setTasks(prev => [newTask, ...prev]);
-    setShowTaskForm(false);
+  const getCategoryStats = (categoryId: TaskCategory) => {
+    const categoryTasks = tasks.filter(task => task.category === categoryId);
+    const pending = categoryTasks.filter(task => !task.completed).length;
+    const overdue = categoryTasks.filter(task => 
+      task.dueDate && new Date(task.dueDate) < new Date() && !task.completed
+    ).length;
+    return { total: categoryTasks.length, pending, overdue };
   };
 
-  const handleEditTask = (formData: TaskFormData) => {
-    if (!editingTask) return;
-
-    setTasks(prev =>
-      prev.map(task =>
-        task.id === editingTask.id
-          ? { ...task, ...formData, updatedAt: new Date().toISOString() }
-          : task
-      )
-    );
-    setEditingTask(null);
-  };
-
-  const handleToggleTask = (id: string) => {
-    setTasks(prev =>
-      prev.map(task =>
-        task.id === id
-          ? { ...task, completed: !task.completed, updatedAt: new Date().toISOString() }
-          : task
-      )
-    );
-  };
-
-  const handleDeleteTask = (id: string) => {
-    setTasks(prev => prev.filter(task => task.id !== id));
-  };
-
-  // Filter and search tasks
-  const filteredTasks = tasks.filter(task => {
-    // Search filter
-    if (searchTerm) {
-      const searchLower = searchTerm.toLowerCase();
-      const matchesSearch = 
-        task.title.toLowerCase().includes(searchLower) ||
-        task.description?.toLowerCase().includes(searchLower);
-      if (!matchesSearch) return false;
-    }
-
-    // Category filter
-    if (selectedCategory !== 'all' && task.category !== selectedCategory) {
-      return false;
-    }
-
-    // Status filter
-    switch (filter) {
-      case 'pending':
-        return !task.completed;
-      case 'completed':
-        return task.completed;
-      case 'overdue':
-        return task.dueDate && new Date(task.dueDate) < new Date() && !task.completed;
-      default:
-        return true;
-    }
-  });
-
-  // Group tasks by category
-  const tasksByCategory = {
-    job: filteredTasks.filter(task => task.category === 'job'),
-    'month-end': filteredTasks.filter(task => task.category === 'month-end'),
-    personal: filteredTasks.filter(task => task.category === 'personal'),
-    business: filteredTasks.filter(task => task.category === 'business'),
-  };
-
-  const stats = {
+  const totalStats = {
     total: tasks.length,
     pending: tasks.filter(task => !task.completed).length,
     completed: tasks.filter(task => task.completed).length,
@@ -116,135 +88,108 @@ export default function Home() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
       {/* Header */}
-      <header className="bg-white shadow-sm border-b sticky top-0 z-10">
-        <div className="max-w-4xl mx-auto px-4 py-4">
-          <div className="flex items-center justify-between mb-4">
-            <div>
-              <h1 className="text-2xl font-bold text-gray-900">Task Manager</h1>
-              <p className="text-sm text-gray-600">Stay organized, stay productive</p>
-            </div>
-            <button
-              onClick={() => setShowTaskForm(true)}
-              className="btn-primary flex items-center gap-2 shadow-lg"
-            >
-              <Plus size={20} />
-              Add Task
-            </button>
+      <header className="bg-white shadow-sm border-b">
+        <div className="max-w-4xl mx-auto px-4 py-6">
+          <div className="text-center mb-6">
+            <h1 className="text-3xl font-bold text-gray-900 mb-2">Task Manager</h1>
+            <p className="text-gray-600">Choose a category to manage your tasks</p>
           </div>
 
-          {/* Stats */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-4">
+          {/* Overall Stats */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
             <div className="bg-gray-100 rounded-lg p-3 text-center">
-              <div className="text-lg font-bold text-gray-900">{stats.total}</div>
-              <div className="text-xs text-gray-600">Total</div>
+              <div className="text-lg font-bold text-gray-900">{totalStats.total}</div>
+              <div className="text-xs text-gray-600">Total Tasks</div>
             </div>
             <div className="bg-blue-100 rounded-lg p-3 text-center">
-              <div className="text-lg font-bold text-blue-600">{stats.pending}</div>
+              <div className="text-lg font-bold text-blue-600">{totalStats.pending}</div>
               <div className="text-xs text-blue-600">Pending</div>
             </div>
             <div className="bg-green-100 rounded-lg p-3 text-center">
-              <div className="text-lg font-bold text-green-600">{stats.completed}</div>
+              <div className="text-lg font-bold text-green-600">{totalStats.completed}</div>
               <div className="text-xs text-green-600">Completed</div>
             </div>
             <div className="bg-red-100 rounded-lg p-3 text-center">
-              <div className="text-lg font-bold text-red-600">{stats.overdue}</div>
+              <div className="text-lg font-bold text-red-600">{totalStats.overdue}</div>
               <div className="text-xs text-red-600">Overdue</div>
             </div>
-          </div>
-
-          {/* Search */}
-          <div className="relative mb-4">
-            <Search size={16} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
-            <input
-              type="text"
-              placeholder="Search tasks..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="input-field pl-10"
-            />
-          </div>
-
-          {/* Filters */}
-          <div className="flex flex-wrap gap-2">
-            <select
-              value={filter}
-              onChange={(e) => setFilter(e.target.value as FilterType)}
-              className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-            >
-              <option value="all">All Tasks</option>
-              <option value="pending">Pending</option>
-              <option value="completed">Completed</option>
-              <option value="overdue">Overdue</option>
-            </select>
-
-            <select
-              value={selectedCategory}
-              onChange={(e) => setSelectedCategory(e.target.value as TaskCategory | 'all')}
-              className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-            >
-              <option value="all">All Categories</option>
-              <option value="job">💼 Job</option>
-              <option value="month-end">📅 Month-end</option>
-              <option value="personal">🏠 Personal</option>
-              <option value="business">🚀 Business</option>
-            </select>
           </div>
         </div>
       </header>
 
-      {/* Main Content */}
+      {/* Categories Grid */}
       <main className="max-w-4xl mx-auto px-4 py-6">
-        {filteredTasks.length === 0 ? (
-          <div className="text-center py-12">
-            <div className="text-6xl mb-4">📝</div>
-            <h3 className="text-lg font-medium text-gray-900 mb-2">
-              {searchTerm || filter !== 'all' || selectedCategory !== 'all' 
-                ? 'No tasks found' 
-                : 'No tasks yet'}
-            </h3>
-            <p className="text-gray-600 mb-6">
-              {searchTerm || filter !== 'all' || selectedCategory !== 'all'
-                ? 'Try adjusting your filters or search term'
-                : 'Add your first task to get started with organizing your life'}
-            </p>
-            {!searchTerm && filter === 'all' && selectedCategory === 'all' && (
-              <button
-                onClick={() => setShowTaskForm(true)}
-                className="btn-primary"
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          {categories.map((category) => {
+            const stats = getCategoryStats(category.id);
+            return (
+              <Link
+                key={category.id}
+                href={`/category/${category.id}`}
+                className="group block"
               >
-                Add Your First Task
-              </button>
-            )}
-          </div>
-        ) : (
-          <div>
-            {(Object.keys(tasksByCategory) as TaskCategory[]).map(category => (
-              <CategorySection
-                key={category}
-                category={category}
-                tasks={tasksByCategory[category]}
-                onToggleTask={handleToggleTask}
-                onEditTask={setEditingTask}
-                onDeleteTask={handleDeleteTask}
-              />
-            ))}
-          </div>
-        )}
-      </main>
+                <div className={`${category.bgColor} rounded-xl p-6 border-2 border-transparent hover:border-gray-200 transition-all duration-200 group-hover:shadow-lg group-active:scale-95`}>
+                  <div className="flex items-center justify-between mb-4">
+                    <div className={`w-12 h-12 rounded-full bg-gradient-to-r ${category.color} flex items-center justify-center text-white text-xl font-bold shadow-md`}>
+                      {category.emoji}
+                    </div>
+                    {stats.overdue > 0 && (
+                      <div className="bg-red-500 text-white text-xs font-bold px-2 py-1 rounded-full">
+                        {stats.overdue} overdue
+                      </div>
+                    )}
+                  </div>
 
-      {/* Task Form Modal */}
-      {(showTaskForm || editingTask) && (
-        <TaskForm
-          onSubmit={editingTask ? handleEditTask : handleAddTask}
-          onCancel={() => {
-            setShowTaskForm(false);
-            setEditingTask(null);
-          }}
-          initialData={editingTask || undefined}
-        />
-      )}
+                  <h3 className={`text-lg font-semibold ${category.textColor} mb-2`}>
+                    {category.name}
+                  </h3>
+                  <p className="text-gray-600 text-sm mb-4">
+                    {category.description}
+                  </p>
+
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-4">
+                      <div className="text-center">
+                        <div className={`text-lg font-bold ${category.textColor}`}>
+                          {stats.total}
+                        </div>
+                        <div className="text-xs text-gray-500">Total</div>
+                      </div>
+                      <div className="text-center">
+                        <div className="text-lg font-bold text-orange-600">
+                          {stats.pending}
+                        </div>
+                        <div className="text-xs text-gray-500">Pending</div>
+                      </div>
+                    </div>
+                    <div className={`w-8 h-8 rounded-full bg-gradient-to-r ${category.color} flex items-center justify-center text-white group-hover:scale-110 transition-transform duration-200`}>
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                      </svg>
+                    </div>
+                  </div>
+                </div>
+              </Link>
+            );
+          })}
+        </div>
+
+        {/* Quick Add Section */}
+        <div className="mt-8 text-center">
+          <p className="text-gray-600 mb-4">Need to add a task quickly?</p>
+          <Link 
+            href="/add-task"
+            className="btn-primary inline-flex items-center gap-2 shadow-lg"
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+            </svg>
+            Quick Add Task
+          </Link>
+        </div>
+      </main>
     </div>
   );
 }

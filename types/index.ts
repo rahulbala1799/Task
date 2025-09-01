@@ -10,7 +10,7 @@ export interface Task {
   dueDate?: string;
 }
 
-export type TaskCategory = 'job' | 'month-end' | 'personal' | 'business';
+export type TaskCategory = 'month-end-phorest' | 'phorest-monthly' | 'phorest-adhoc' | 'pnp-marketing' | 'pnp-printing' | 'personal';
 
 export type Priority = 'low' | 'medium' | 'high' | 'urgent';
 
