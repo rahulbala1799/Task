@@ -15,6 +15,10 @@ import {
   isRecurringCategory,
   getTemplatesByCategory
 } from '@/lib/templates';
+import { 
+  getAllMonthEndTemplates, 
+  getAllPhorestMonthlyTemplates 
+} from '@/lib/seedTemplates';
 import TaskForm from '@/components/TaskForm';
 import TaskCard from '@/components/TaskCard';
 import TaskTemplateForm from '@/components/TaskTemplateForm';
@@ -211,6 +215,30 @@ export default function CategoryPage() {
     }
   };
 
+  const handleSeedTemplates = () => {
+    let seedTemplates: TaskTemplate[] = [];
+    
+    if (categoryId === 'month-end-phorest') {
+      seedTemplates = getAllMonthEndTemplates();
+    } else if (categoryId === 'phorest-monthly') {
+      seedTemplates = getAllPhorestMonthlyTemplates();
+    }
+    
+    if (seedTemplates.length > 0) {
+      // Merge with existing templates, avoiding duplicates by title
+      const existingTemplates = templates;
+      const existingTitles = existingTemplates.map(t => t.title);
+      const newTemplates = seedTemplates.filter(t => !existingTitles.includes(t.title));
+      
+      if (newTemplates.length > 0) {
+        setTemplates(prev => [...newTemplates, ...prev]);
+        alert(`Added ${newTemplates.length} business-specific templates!`);
+      } else {
+        alert('All business templates are already added!');
+      }
+    }
+  };
+
   // Filter tasks for this category
   const categoryTasks = tasks.filter(task => task.category === categoryId);
 
@@ -357,17 +385,28 @@ export default function CategoryPage() {
                 <h3 className="text-lg font-semibold text-blue-900">
                   Monthly Task Templates
                 </h3>
-                <button
-                  onClick={() => setShowTemplateForm(true)}
-                  className="btn-primary text-sm flex items-center gap-1"
-                >
-                  <Plus size={14} />
-                  Add Template
-                </button>
+                <div className="flex items-center gap-2">
+                  {(categoryId === 'month-end-phorest' || categoryId === 'phorest-monthly') && (
+                    <button
+                      onClick={handleSeedTemplates}
+                      className="px-3 py-1 bg-green-600 text-white rounded-lg text-sm hover:bg-green-700 transition-colors flex items-center gap-1"
+                    >
+                      <Plus size={12} />
+                      Add Business Templates
+                    </button>
+                  )}
+                  <button
+                    onClick={() => setShowTemplateForm(true)}
+                    className="btn-primary text-sm flex items-center gap-1"
+                  >
+                    <Plus size={14} />
+                    Custom Template
+                  </button>
+                </div>
               </div>
               
               <p className="text-sm text-blue-800 mb-4">
-                Templates automatically create tasks each month. Perfect for recurring monthly tasks that are always the same.
+                Templates automatically create tasks each month. Use "Add Business Templates" to load your specific Phorest workflow, or create custom templates.
               </p>
               
               {categoryTemplates.length === 0 ? (
