@@ -34,29 +34,55 @@ export async function PUT(request: NextRequest) {
   try {
     const body = await request.json();
     console.log('PUT request body:', body);
-    const { id, ...updateData } = body;
+    const { id, title, description, category, priority, completed, dueDate } = body;
 
     if (!id) {
       console.error('No ID provided in update request');
       return NextResponse.json({ error: 'Task ID is required' }, { status: 400 });
     }
 
-    console.log('Updating task with ID:', id, 'Data:', updateData);
+    console.log('Updating task with ID:', id);
 
-    const [updatedTask] = await db
-      .update(tasks)
-      .set({ ...updateData, updatedAt: new Date() })
-      .where(eq(tasks.id, id))
-      .returning();
+    // Use direct SQL instead of Drizzle ORM to avoid any ORM issues
+    const { sql } = await import('@vercel/postgres');
+    
+    const updateResult = await sql`
+      UPDATE tasks 
+      SET 
+        title = ${title || ''},
+        description = ${description || ''},
+        category = ${category || ''},
+        priority = ${priority || 'medium'},
+        completed = ${completed || false},
+        due_date = ${dueDate || null},
+        updated_at = NOW()
+      WHERE id = ${id}
+      RETURNING *;
+    `;
 
-    console.log('Database update result:', updatedTask);
+    console.log('Database update result:', updateResult.rows);
 
-    if (!updatedTask) {
+    if (updateResult.rows.length === 0) {
       console.error('Task not found in database:', id);
       return NextResponse.json({ error: 'Task not found' }, { status: 404 });
     }
 
-    return NextResponse.json(updatedTask);
+    const updatedTask = updateResult.rows[0];
+    
+    // Convert database format back to app format
+    const formattedTask = {
+      id: updatedTask.id,
+      title: updatedTask.title,
+      description: updatedTask.description,
+      category: updatedTask.category,
+      priority: updatedTask.priority,
+      completed: updatedTask.completed,
+      dueDate: updatedTask.due_date,
+      createdAt: updatedTask.created_at,
+      updatedAt: updatedTask.updated_at,
+    };
+
+    return NextResponse.json(formattedTask);
   } catch (error) {
     console.error('Error updating task:', error);
     return NextResponse.json({ error: 'Failed to update task' }, { status: 500 });
