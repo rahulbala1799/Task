@@ -155,15 +155,24 @@ export default function CategoryPage() {
 
   const handleToggleTask = async (id: string) => {
     const task = tasks.find(t => t.id === id);
-    if (!task) return;
+    if (!task) {
+      console.error('Task not found:', id);
+      return;
+    }
 
-    const updatedTask = { ...task, completed: !task.completed };
+    console.log('Toggling task:', task);
+    const updatedTask = { ...task, completed: !task.completed, updatedAt: new Date().toISOString() };
+    console.log('Sending update:', updatedTask);
+    
     const savedTask = await updateTaskInDB(updatedTask);
+    console.log('Received response:', savedTask);
     
     if (savedTask) {
       setTasks(prev =>
         prev.map(t => t.id === id ? savedTask : t)
       );
+    } else {
+      console.error('Failed to update task in database');
     }
   };
 

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { db, templates, NewTemplate } from '@/lib/db';
+import { db } from '@/lib/db';
+import { templates, type NewTemplate } from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';
 
 export async function GET() {

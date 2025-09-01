@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { db, tasks, NewTask } from '@/lib/db';
+import { db } from '@/lib/db';
+import { tasks, type NewTask } from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';
 
 export async function GET() {
@@ -32,7 +33,15 @@ export async function POST(request: NextRequest) {
 export async function PUT(request: NextRequest) {
   try {
     const body = await request.json();
+    console.log('PUT request body:', body);
     const { id, ...updateData } = body;
+
+    if (!id) {
+      console.error('No ID provided in update request');
+      return NextResponse.json({ error: 'Task ID is required' }, { status: 400 });
+    }
+
+    console.log('Updating task with ID:', id, 'Data:', updateData);
 
     const [updatedTask] = await db
       .update(tasks)
@@ -40,7 +49,10 @@ export async function PUT(request: NextRequest) {
       .where(eq(tasks.id, id))
       .returning();
 
+    console.log('Database update result:', updatedTask);
+
     if (!updatedTask) {
+      console.error('Task not found in database:', id);
       return NextResponse.json({ error: 'Task not found' }, { status: 404 });
     }
 
