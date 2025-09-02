@@ -245,6 +245,51 @@ export default function Home() {
           })}
         </div>
 
+        {/* Goals & Journaling Section */}
+        <div className="mt-8">
+          <h2 className="text-xl font-bold text-gray-900 mb-6 text-center">📝 Personal Development</h2>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
+            {/* Goals Section */}
+            <Link
+              href="/goals"
+              className="bg-gradient-to-r from-purple-500 to-purple-600 text-white p-6 rounded-xl shadow-lg hover:shadow-xl transition-all duration-200 hover:scale-105"
+            >
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center gap-3">
+                  <span className="text-3xl">🎯</span>
+                  <h3 className="text-xl font-bold">Goals</h3>
+                </div>
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                </svg>
+              </div>
+              <p className="text-purple-100 text-sm">
+                Set, track, and achieve your personal and professional goals
+              </p>
+            </Link>
+
+            {/* Journaling Section */}
+            <Link
+              href="/journal"
+              className="bg-gradient-to-r from-teal-500 to-teal-600 text-white p-6 rounded-xl shadow-lg hover:shadow-xl transition-all duration-200 hover:scale-105"
+            >
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center gap-3">
+                  <span className="text-3xl">📖</span>
+                  <h3 className="text-xl font-bold">Journal</h3>
+                </div>
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                </svg>
+              </div>
+              <p className="text-teal-100 text-sm">
+                Reflect on your day, capture thoughts, and track your journey
+              </p>
+            </Link>
+          </div>
+        </div>
+
         {/* Quick Add Section */}
         <div className="mt-8 text-center">
           <p className="text-gray-600 mb-4">Need to add a task quickly?</p>
