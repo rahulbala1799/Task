@@ -33,6 +33,11 @@ export default function TaskForm({ onSubmit, onCancel, initialData }: TaskFormPr
     category: initialData?.category || 'personal',
     priority: initialData?.priority || 'medium',
     dueDate: initialData?.dueDate || '',
+    isRecurring: initialData?.isRecurring || false,
+    recurringType: initialData?.recurringType || 'monthly',
+    recurringInterval: initialData?.recurringInterval || 1,
+    recurringDays: initialData?.recurringDays || [1], // Default to Monday
+    recurringDayOfMonth: initialData?.recurringDayOfMonth || 1,
   });
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -141,6 +146,122 @@ export default function TaskForm({ onSubmit, onCancel, initialData }: TaskFormPr
               onChange={(e) => setFormData({ ...formData, dueDate: e.target.value })}
               className="input-field"
             />
+          </div>
+
+          {/* Recurring Task Options */}
+          <div className="border-t pt-4">
+            <div className="flex items-center gap-3 mb-4">
+              <input
+                type="checkbox"
+                id="isRecurring"
+                checked={formData.isRecurring}
+                onChange={(e) => setFormData({ ...formData, isRecurring: e.target.checked })}
+                className="w-4 h-4 text-primary-600 bg-gray-100 border-gray-300 rounded focus:ring-primary-500"
+              />
+              <label htmlFor="isRecurring" className="text-sm font-medium text-gray-700">
+                🔄 Make this a recurring task
+              </label>
+            </div>
+
+            {formData.isRecurring && (
+              <div className="space-y-4 ml-7">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Repeat Frequency
+                  </label>
+                  <div className="grid grid-cols-2 gap-2">
+                    {[
+                      { id: 'daily', name: 'Daily', emoji: '📅' },
+                      { id: 'weekly', name: 'Weekly', emoji: '📆' },
+                      { id: 'monthly', name: 'Monthly', emoji: '🗓️' },
+                      { id: 'custom', name: 'Custom', emoji: '⚙️' },
+                    ].map((type) => (
+                      <button
+                        key={type.id}
+                        type="button"
+                        onClick={() => setFormData({ ...formData, recurringType: type.id as any })}
+                        className={`p-2 rounded-lg border-2 transition-all duration-200 flex items-center gap-2 ${
+                          formData.recurringType === type.id
+                            ? 'border-primary-500 bg-primary-50'
+                            : 'border-gray-200 hover:border-gray-300'
+                        }`}
+                      >
+                        <span>{type.emoji}</span>
+                        <span className="text-sm font-medium">{type.name}</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {formData.recurringType === 'weekly' && (
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Repeat on days
+                    </label>
+                    <div className="grid grid-cols-7 gap-1">
+                      {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((day, index) => (
+                        <button
+                          key={index}
+                          type="button"
+                          onClick={() => {
+                            const days = formData.recurringDays || [];
+                            const newDays = days.includes(index)
+                              ? days.filter(d => d !== index)
+                              : [...days, index];
+                            setFormData({ ...formData, recurringDays: newDays });
+                          }}
+                          className={`p-2 rounded text-xs font-medium transition-all duration-200 ${
+                            (formData.recurringDays || []).includes(index)
+                              ? 'bg-primary-500 text-white'
+                              : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                          }`}
+                        >
+                          {day}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {formData.recurringType === 'monthly' && (
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Repeat on day of month
+                    </label>
+                    <input
+                      type="number"
+                      min="1"
+                      max="31"
+                      value={formData.recurringDayOfMonth}
+                      onChange={(e) => setFormData({ ...formData, recurringDayOfMonth: parseInt(e.target.value) })}
+                      className="input-field"
+                      placeholder="Day of month (1-31)"
+                    />
+                  </div>
+                )}
+
+                {formData.recurringType === 'custom' && (
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Repeat every X days
+                    </label>
+                    <input
+                      type="number"
+                      min="1"
+                      max="365"
+                      value={formData.recurringInterval}
+                      onChange={(e) => setFormData({ ...formData, recurringInterval: parseInt(e.target.value) })}
+                      className="input-field"
+                      placeholder="Number of days"
+                    />
+                  </div>
+                )}
+
+                <div className="text-xs text-gray-500 bg-blue-50 p-2 rounded">
+                  💡 Recurring tasks will automatically create new instances based on your schedule
+                </div>
+              </div>
+            )}
           </div>
 
           <div className="flex gap-3 pt-4">

@@ -5,8 +5,33 @@ import { eq } from 'drizzle-orm';
 
 export async function GET() {
   try {
-    const allTasks = await db.select().from(tasks).orderBy(tasks.createdAt);
-    return NextResponse.json(allTasks);
+    const { sql } = await import('@vercel/postgres');
+    
+    const result = await sql`
+      SELECT * FROM tasks ORDER BY created_at DESC;
+    `;
+    
+    // Convert database format back to app format
+    const formattedTasks = result.rows.map(task => ({
+      id: task.id,
+      title: task.title,
+      description: task.description,
+      category: task.category,
+      priority: task.priority,
+      completed: task.completed,
+      dueDate: task.due_date,
+      createdAt: task.created_at,
+      updatedAt: task.updated_at,
+      isRecurring: task.is_recurring,
+      recurringType: task.recurring_type,
+      recurringInterval: task.recurring_interval,
+      recurringDays: task.recurring_days ? JSON.parse(task.recurring_days) : undefined,
+      recurringDayOfMonth: task.recurring_day_of_month,
+      lastGenerated: task.last_generated,
+      parentRecurringId: task.parent_recurring_id,
+    }));
+    
+    return NextResponse.json(formattedTasks);
   } catch (error) {
     console.error('Error fetching tasks:', error);
     return NextResponse.json({ error: 'Failed to fetch tasks' }, { status: 500 });
@@ -16,14 +41,71 @@ export async function GET() {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const newTask: NewTask = {
-      ...body,
-      createdAt: new Date(),
-      updatedAt: new Date(),
+    console.log('POST request body:', body);
+    
+    const { 
+      id, title, description, category, priority, dueDate,
+      isRecurring, recurringType, recurringInterval, recurringDays, recurringDayOfMonth
+    } = body;
+
+    // Use direct SQL for consistency
+    const { sql } = await import('@vercel/postgres');
+    
+    const taskId = id || Math.random().toString(36).substr(2, 15);
+    
+    const insertResult = await sql`
+      INSERT INTO tasks (
+        id, title, description, category, priority, due_date,
+        is_recurring, recurring_type, recurring_interval, recurring_days, recurring_day_of_month,
+        completed, created_at, updated_at
+      ) VALUES (
+        ${taskId},
+        ${title},
+        ${description || ''},
+        ${category},
+        ${priority || 'medium'},
+        ${dueDate || null},
+        ${isRecurring || false},
+        ${recurringType || null},
+        ${recurringInterval || null},
+        ${recurringDays ? JSON.stringify(recurringDays) : null},
+        ${recurringDayOfMonth || null},
+        false,
+        NOW(),
+        NOW()
+      )
+      RETURNING *;
+    `;
+
+    console.log('Database insert result:', insertResult.rows);
+
+    if (insertResult.rows.length === 0) {
+      throw new Error('Failed to create task');
+    }
+
+    const createdTask = insertResult.rows[0];
+    
+    // Convert database format back to app format
+    const formattedTask = {
+      id: createdTask.id,
+      title: createdTask.title,
+      description: createdTask.description,
+      category: createdTask.category,
+      priority: createdTask.priority,
+      completed: createdTask.completed,
+      dueDate: createdTask.due_date,
+      createdAt: createdTask.created_at,
+      updatedAt: createdTask.updated_at,
+      isRecurring: createdTask.is_recurring,
+      recurringType: createdTask.recurring_type,
+      recurringInterval: createdTask.recurring_interval,
+      recurringDays: createdTask.recurring_days ? JSON.parse(createdTask.recurring_days) : undefined,
+      recurringDayOfMonth: createdTask.recurring_day_of_month,
+      lastGenerated: createdTask.last_generated,
+      parentRecurringId: createdTask.parent_recurring_id,
     };
 
-    const [createdTask] = await db.insert(tasks).values(newTask).returning();
-    return NextResponse.json(createdTask, { status: 201 });
+    return NextResponse.json(formattedTask, { status: 201 });
   } catch (error) {
     console.error('Error creating task:', error);
     return NextResponse.json({ error: 'Failed to create task' }, { status: 500 });
@@ -34,7 +116,11 @@ export async function PUT(request: NextRequest) {
   try {
     const body = await request.json();
     console.log('PUT request body:', body);
-    const { id, title, description, category, priority, completed, dueDate } = body;
+    const { 
+      id, title, description, category, priority, completed, dueDate,
+      isRecurring, recurringType, recurringInterval, recurringDays, recurringDayOfMonth,
+      lastGenerated, parentRecurringId
+    } = body;
 
     if (!id) {
       console.error('No ID provided in update request');
@@ -55,6 +141,13 @@ export async function PUT(request: NextRequest) {
         priority = ${priority || 'medium'},
         completed = ${completed || false},
         due_date = ${dueDate || null},
+        is_recurring = ${isRecurring || false},
+        recurring_type = ${recurringType || null},
+        recurring_interval = ${recurringInterval || null},
+        recurring_days = ${recurringDays ? JSON.stringify(recurringDays) : null},
+        recurring_day_of_month = ${recurringDayOfMonth || null},
+        last_generated = ${lastGenerated || null},
+        parent_recurring_id = ${parentRecurringId || null},
         updated_at = NOW()
       WHERE id = ${id}
       RETURNING *;
@@ -80,6 +173,13 @@ export async function PUT(request: NextRequest) {
       dueDate: updatedTask.due_date,
       createdAt: updatedTask.created_at,
       updatedAt: updatedTask.updated_at,
+      isRecurring: updatedTask.is_recurring,
+      recurringType: updatedTask.recurring_type,
+      recurringInterval: updatedTask.recurring_interval,
+      recurringDays: updatedTask.recurring_days ? JSON.parse(updatedTask.recurring_days) : undefined,
+      recurringDayOfMonth: updatedTask.recurring_day_of_month,
+      lastGenerated: updatedTask.last_generated,
+      parentRecurringId: updatedTask.parent_recurring_id,
     };
 
     return NextResponse.json(formattedTask);

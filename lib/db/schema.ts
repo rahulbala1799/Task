@@ -10,6 +10,14 @@ export const tasks = pgTable('tasks', {
   dueDate: text('due_date'),
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
+  // Recurring task fields
+  isRecurring: boolean('is_recurring').default(false),
+  recurringType: text('recurring_type'), // 'daily' | 'weekly' | 'monthly' | 'custom'
+  recurringInterval: integer('recurring_interval'), // For custom: every X days
+  recurringDays: text('recurring_days'), // JSON string for weekly: [0,1,2,3,4,5,6]
+  recurringDayOfMonth: integer('recurring_day_of_month'), // For monthly: day of month (1-31)
+  lastGenerated: text('last_generated'), // ISO date string
+  parentRecurringId: text('parent_recurring_id'), // If this task was generated from a recurring task
 });
 
 export const templates = pgTable('templates', {
